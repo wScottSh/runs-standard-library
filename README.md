@@ -1,100 +1,193 @@
-# RUNS Standard Library ("The Vocabulary")
+# RUNS Standard Library
 
-🏠 **[Overview](https://github.com/decentralized-game-standard)** · 🔧 **[RUNS](https://github.com/decentralized-game-standard/runs-standard)** · 📦 **[AEMS](https://github.com/decentralized-game-standard/aems-standard)** · ⚡ **[WOCS](https://github.com/decentralized-game-standard/wocs-standard)** · ❓ **[FAQ](https://github.com/decentralized-game-standard/.github/blob/main/profile/FAQ.md)**
+🏠 **[DGS Overview](https://github.com/decentralized-game-standard)**  
+· 🏃 **[RUNS](https://github.com/decentralized-game-standard/runs-standard)**  
+· 📦 **[AEMS](https://github.com/decentralized-game-standard/aems-standard)**  
+· ⚡ **[WOCS](https://github.com/decentralized-game-standard/wocs-standard)**  
+· 🔤 **[Ludic](https://github.com/decentralized-game-standard/ludic-notation-standard)**
 
-> **Status**: Draft / RFC  
+> **Status**: Community-Curated Examples / RFC  
 > **Version**: 0.1.0
 
----
+## The Shared Palette for RUNS
 
-Interoperability in decentralized gaming begins with a shared language.
+The **RUNS Standard Library** is a collection of **recommended, optional primitives**—data shapes (Fields) and granular Processor examples—that accelerate interoperability across games, mods, and runtimes.
 
-The **RUNS Standard Library** establishes semantic agreement on fundamental data shapes. While the RUNS Protocol defines *how* data flows through Records and Processors, the Standard Library defines *what* that data means. Without this shared vocabulary, a Physics Processor built by one developer cannot reliably drive a Rendering Processor from another—names mismatch, assumptions diverge, composition fails.
+It is **not** part of the mandatory RUNS Protocol. You can ignore it entirely and still build fully compliant RUNS games with custom schemas. But targeting these primitives unlocks instant composability: a movement Processor from one game drives transforms in another, mods drop in seamlessly, and ecosystems share "pigments" without negotiation.
 
-This library provides the minimal, neutral set of schemas required for basic cross-engine compatibility. It is deliberately small: just enough to bootstrap an ecosystem where specialized Processors can assume the presence of common concepts like "time progression," "spatial transform," or "input state."
+Curated openly by the community, this library evolves organically. Widely adopted suggestions become the de facto starting point for new projects—lowering barriers while preserving full freedom.
 
-Think of it as the common words in a constructed language—sufficient for basic communication, leaving room for rich dialects to emerge.
+For permissionless distribution (e.g., via Nostr relays), all examples here are plain-text: serializable schemas, declarative Processor definitions, and bundle graphs.
 
-## Why a Shared Vocabulary?
+## Why Use the Standard Library?
 
-Modern game engines force lock-in through proprietary component names and layouts. A "Transform" in Unity differs subtly from one in Unreal; input handling varies; time deltas are exposed differently. Mods and extensions must target one specific engine.
+- **Instant Interoperability** — Shared Fields let unrelated packages compose without custom bridges.
+- **Multi-Scale Mixing** — Start with syscall-granular ops, wire into bundles, bundle those into systems—all uniform.
+- **Lower Onboarding** — Beginners prototype quickly; experts extend or replace.
+- **Ecosystem Momentum** — Popular primitives attract more tools, runtimes, and mods.
+- **Honest Longevity** — Conventions separate enduring gameplay rules from transient performance tricks.
 
-The RUNS Standard Library breaks this pattern:
+Using the library is a convention, not a requirement. It’s the "shared palette" that makes decentralized composition practical.
 
-- **Composable Processors** — A third-party "Gravity Processor" can safely read and write `runs:transform` without knowing which engine is running underneath.
-- **Engine Diversity** — Minimal runtimes (e.g., for web or embedded) and high-performance ones can coexist, sharing the same Processor marketplace.
-- **Future-Proofing** — As long as schemas remain stable, old Processors continue working on new runtimes decades later.
+## Core Philosophy
 
-This library is **not** exhaustive. It avoids genre-specific assumptions (e.g., no "Health" or "Inventory" by default). Custom schemas remain fully supported—engines and games can define their own while still participating in the shared core.
+- **Minimal and Neutral** — No genre assumptions, no performance tricks baked in.
+- **Plain-Text First** — Examples in human-readable, distributable formats.
+- **Granular to Hierarchical** — Primitives are tiny atoms; bundling builds complexity.
+- **Community-Driven** — Anyone can propose additions/changes via PR or WOCS bounty.
 
-## Core Schemas
+## Recommended Fields (The Vocabulary)
 
-These schemas form the foundation for basic interoperability.
+These suggested Field schemas provide a common tongue. Define them on Records as needed.
 
-| Schema            | Purpose                          | Fields                                      | Notes                          |
-|-------------------|----------------------------------|---------------------------------------------|--------------------------------|
-| `runs:root`       | Structural root of an entity logic tree | None (tag only)                             | Marks the entry point          |
-| `runs:time`       | Time progression data            | `delta_seconds` (f32)<br>`total_seconds` (f64)<br>`frame_count` (u64) | Core simulation clock          |
-| `runs:transform`  | 3D Euclidean spatial data        | `position` (Vec3)<br>`rotation` (Quat)<br>`scale` (Vec3) | Standard spatial representation |
-| `runs:input`      | HID state abstraction            | `axes` (Map<String, f32>)<br>`buttons` (Set<String>) | Generic input mapping          |
+| Prefix | Field Name          | Type                                      | Description                          |
+|--------|---------------------|-------------------------------------------|--------------------------------------|
+| `runs` | transform           | struct { position: vec3, rotation: quat } | Spatial placement                    |
+| `runs` | velocity            | vec3                                      | Linear velocity                      |
+| `runs` | angular_velocity    | vec3                                      | Rotational velocity                  |
+| `runs` | delta_time          | float                                     | Frame timestep (provided by runtime) |
+| `runs` | input_intent        | struct { move: vec2, look: vec2, jump: bool } | Player/controller intent          |
+| `runs` | health              | float                                     | Generic damageable value             |
+| `runs` | team_id             | u32                                       | Affiliation for rules                |
 
-### Detailed Definitions
+Schemas are versioned JSON-like for serialization:
 
-**`runs:root`**  
-- **Definition**: A tag schema indicating the structural root of an entity logic tree.  
-- **Fields**: None.  
-- **Rationale**: Provides a clear entry point for entity composition without carrying data.
+```json
+{
+  "runs:transform": {
+    "position": { "type": "vec3", "default": [0,0,0] },
+    "rotation": { "type": "quat", "default": [0,0,0,1] }
+  }
+}
+```
 
-**`runs:time`**  
-- **Definition**: Represents simulation time progression.  
-- **Fields**:  
-  - `delta_seconds`: Time elapsed since the last frame (f32).  
-  - `total_seconds`: Total elapsed simulation time (f64).  
-  - `frame_count`: Cumulative frame counter (u64).  
-- **Rationale**: Enables consistent time-stepping across diverse runtimes.
+Custom Fields remain fully supported—mix freely.
 
-**`runs:transform`**  
-- **Definition**: Standard 3D spatial transform.  
-- **Fields**:  
-  - `position`: Translation vector (Vec3).  
-  - `rotation`: Orientation quaternion (Quat).  
-  - `scale`: Non-uniform scaling (Vec3).  
-- **Rationale**: The most common spatial data shape, expected by physics, rendering, and animation Processors.
+## Primitive Processors (The Pigments)
 
-**`runs:input`**  
-- **Definition**: Abstracted human interface device state.  
-- **Fields**:  
-  - `axes`: Named analog inputs (e.g., "move_x", "look_y") mapped to normalized values.  
-  - `buttons`: Set of active button identifiers (e.g., "jump", "fire").  
-- **Rationale**: Decouples input from specific hardware, enabling remapping and cross-device compatibility.
+Granular, pure operations—suggested in a simple declarative plain-text format for readability and Nostr distribution.
 
-## Usage Guidelines
+Format (`.runs-prim`):
 
-Engines **SHOULD** implement these schemas exactly to participate fully in the ecosystem. A third-party "Physics Processor" will expect `runs:transform` on relevant Records. If your engine uses a different name (e.g., `PositionComponent`), the Processor cannot plug in seamlessly.
+```
+processor add_vec3
+inputs:
+  a: vec3
+  b: vec3
+outputs:
+  result: vec3
 
-Example failure case:  
-An engine renames the schema to `my:position`. A community-built "Orbit Camera Processor" that reads `runs:transform` will silently fail or require forking.
+result.x = a.x + b.x
+result.y = a.y + b.y
+result.z = a.z + b.z
+```
 
-This library remains intentionally minimal. Extensions (e.g., `runs:velocity`, `runs:hierarchy`) may be proposed via RFC as the ecosystem matures.
+Examples:
 
-## What the Standard Library Deliberately Excludes
+- `mul_vec3_scalar` — Scale vectors.
+- `integrate_velocity` — Basic Euler: `transform.position += velocity * delta_time`.
+- `apply_input_intent` — Map intent to velocity.
+- `select_entities` — Basic query primitives (has_field, etc.).
 
-| Excluded                  | Why                                      | Where It Belongs                  |
-|---------------------------|------------------------------------------|-----------------------------------|
-| Genre-specific schemas    | Avoids biasing toward spatial/FPS games  | Custom packages or future layers  |
-| Implementation details    | Schemas define shape, not behavior       | Individual Processors             |
-| Exhaustive coverage       | Keeps the core lightweight and neutral   | Community extensions              |
+These are starting atoms—wire them freely in Networks.
 
-These exclusions ensure the library remains a true common foundation rather than a bloated framework.
+## Bundling Examples (Mixing Paints)
 
-## Integration with RUNS
+Bundles are sub-Networks acting as higher-scale Processors.
 
-The Standard Library is Layer 2 in the RUNS architecture—bridging the raw Protocol (Layer 1) and the diverse Ecosystem (Layer 3). Processors targeting these schemas become universally composable.
+Example: Simple movement bundle (`.runs-bundle` graph):
+
+```yaml
+bundle basic_movement
+inputs:
+  transform: runs:transform
+  velocity: runs:velocity
+  delta_time: runs:delta_time
+outputs:
+  transform: runs:transform
+
+wires:
+  - mul: mul_vec3_scalar(velocity, delta_time)
+  - add: add_vec3(transform.position, mul.result)
+output:
+  transform.position = add.result
+```
+
+Higher levels:
+- Character controller bundles movement + grounding + jump.
+- Physics island bundles multiple controllers + resolution.
+
+Every bundle remains a first-class Processor—recursively composable.
+
+## Processor Authoring Styles (Semantic vs. Realization)
+
+To support extreme longevity while enabling performance, the library distinguishes two **conventions** for Processor definitions—all plain-text, all composable:
+
+**Gameplay Logic Processors (Recommended for Shared Primitives)**  
+- Style: Constrained, SSA-like declarative syntax.  
+- Focus: Pure semantic intent (rules, state transitions)—close to math, no hardware assumptions.  
+- Horizon: Millennia—readable/reimplementable by hand centuries later.  
+- Use for: Core rules (integration, collision resolution, input→intent).  
+
+Example (`integrate_velocity.runs-prim`):
+```
+processor integrate_velocity
+inputs:
+  position: runs:vec3
+  velocity: runs:vec3
+  delta_time: float
+outputs:
+  position: runs:vec3
+
+position += velocity * delta_time
+```
+
+**Execution Realization Processors (Optional for Fidelity)**  
+- Style: Extended declarative with hint sections (or more expressive graphs).  
+- Focus: Platform guidance (SIMD, approximations, GPU offload)—ignored by minimal runtimes.  
+- Horizon: Decades—evolves with hardware; cleverness applied by runtimes.  
+- Use for: Optimized variants of semantic logic.  
+
+Example (`integrate_velocity_realized.runs-prim`):
+```
+processor integrate_velocity_realized
+inputs:
+  position: runs:vec3
+  velocity: runs:vec3
+  delta_time: float
+outputs:
+  position: runs:vec3
+
+core:
+  position += velocity * delta_time
+
+hints:
+  vectorize: simd
+  approximate: fast_mul optional
+  target: gpu_compute if_available
+```
+
+Both styles target the same Fields. Runtimes interpret core semantics universally; advanced ones apply hints for perf. Prefer pure declarative for library contributions—realizations compete in Ecosystem packages.
+
+## Authoring Conventions
+
+- Declarative core for all shared examples.
+- Hints optional and runtime-specific.
+- Plain-text distribution always.
+
+## Contributing
+
+This library thrives on community input:
+- Propose new Fields/Primitives via issues/PRs.
+- Use WOCS for bountied additions.
+- Fork and specialize—adoption decides what sticks.
+
+Target these for sharing; innovate beyond for uniqueness.
 
 ## Summary
 
-The RUNS Standard Library is the shared vocabulary that turns isolated engines into a collaborative ecosystem. Implement it. Build on it. Extend beyond it.
+The RUNS Standard Library is your optional starter kit: shared Fields and granular primitives that make decentralized, enduring games easier to build and compose.
 
-Small agreements enable vast composition.
+Mix the pigments. Build something timeless.
 
-**MIT License** — Open for implementation, extension, critique.
+**MIT License** — Fork, extend, share freely.
